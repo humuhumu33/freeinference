@@ -1,0 +1,50 @@
+[package]
+name = "freeinference"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.94"
+license = "MIT OR Apache-2.0"
+description = "Free verified AI inference: a local OpenAI compatible endpoint where every answer carries a replayable receipt"
+repository = "https://github.com/humuhumu33/freeinference"
+default-run = "freeinference"
+publish = false
+
+[lib]
+name = "freeinference"
+path = "src/lib.rs"
+
+[[bin]]
+name = "freeinference"
+path = "src/main.rs"
+
+[dependencies]
+# The daemon, module system, router, OpenAPI, CLI plumbing, config, audit
+# log and store. Depended on by git revision, never forked. The branch below
+# carries the one upstream seam this crate needs: ModuleRegistry::build_with
+# and AppState::build_with_modules, so a downstream binary can register
+# modules. Pin to the merge commit once it lands upstream.
+hologram-live = { git = "https://github.com/humuhumu33/hologram-live-upstream", branch = "module-seam" }
+# Kappa addressing. Same revision and features as hologram-live's own pin so
+# Cargo resolves one copy.
+hologram = { package = "uor-hologram", git = "https://github.com/Hologram-Technologies/hologram", rev = "2bda6a9a9476872dade705bd61ece4209607f6da", default-features = false, features = ["archive", "space"] }
+# OpenAI wire types, used to validate requests against the published shape.
+async-openai = { version = "0.42", default-features = false, features = ["chat-completion-types"] }
+axum = { version = "0.8", features = ["json", "tokio", "http1"] }
+blake3 = "1"
+clap = { version = "4.5", features = ["derive", "env"] }
+ed25519-dalek = { version = "3", features = ["alloc"] }
+getrandom = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync"] }
+tokio-stream = "0.1"
+tracing = "0.1"
+utoipa = { version = "5", features = ["axum_extras"] }
+
+[dev-dependencies]
+http-body-util = "0.1"
+tempfile = "3"
+tower = { version = "0.5", features = ["util"] }
+
+[lints.rust]
+unsafe_code = "forbid"
