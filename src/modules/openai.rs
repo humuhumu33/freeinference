@@ -162,6 +162,7 @@ async fn chat_completions(
     let completion = engine
         .complete(CompletionRequest {
             prompt: prompt.clone(),
+            model: Some(model_name.clone()),
             max_tokens,
             temperature,
             seed,
@@ -172,15 +173,23 @@ async fn chat_completions(
     let created = unix_seconds();
     let mut fingerprint = None;
     let mut receipt_id = None;
-    if let Some(info) = resolved {
+    // The model κ is the engine's root κ when the engine addresses its
+    // weights (a manifest over config, tokenizer, every tensor and every
+    // derived artifact); otherwise the catalog's record id.
+    let model_kappa = completion
+        .model_kappa
+        .clone()
+        .or_else(|| resolved.as_ref().map(|info| info.id.clone()));
+    if let Some(model_kappa) = model_kappa {
         let engine_kappa = engine_kappa(engine.name());
         let params = json!({ "max_tokens": max_tokens, "temperature": temperature, "seed": seed });
         let bound = Bound {
-            model_kappa: info.id.clone(),
+            model_kappa: model_kappa.clone(),
             engine_kappa: engine_kappa.clone(),
             prompt_kappa: kappa_of(prompt.as_bytes()),
             params_kappa: kappa_of(params.to_string().as_bytes()),
             output_kappa: kappa_of(completion.text.as_bytes()),
+            answer_kappa: completion.answer_kappa.clone().unwrap_or_default(),
         };
         let signer = SIGNER
             .get()
@@ -199,7 +208,7 @@ async fn chat_completions(
         })
         .await
         .map_err(|error| ApiError::server(format!("join receipt store: {error}")))??;
-        fingerprint = Some(format!("{};{}", info.id, engine_kappa));
+        fingerprint = Some(format!("{model_kappa};{engine_kappa}"));
         receipt_id = Some(stored.id);
     }
 

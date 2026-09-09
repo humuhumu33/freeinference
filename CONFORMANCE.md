@@ -16,6 +16,8 @@ Every registered id has exactly one Gherkin scenario and exactly one executable 
 | `RC-04` | `build` | `receipts` | Every module registers and the merged router boots without a route collision. |
 | `CO-01` | `build` | `console` | The daemon serves a dashboard at /dashboard that lists the sealed receipts on this machine. |
 | `CO-02` | `build` | `console` | The daemon serves a playground at /playground that sends prompts to the local OpenAI surface and shows each answer's fingerprint and receipt. |
+| `VF-01` | `build` | `verify` | A receipt fetched by its kappa from /v1/receipts returns the stored document whose signature and kappa verify. |
+| `VF-02` | `build` | `verify` | Verifying a receipt whose engine sealed no replayable answer record reports not verified with integrity true and never claims a replay. |
 
 ## Claims that are not conformance ids
 

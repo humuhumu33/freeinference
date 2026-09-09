@@ -23,6 +23,7 @@ const REPLACED: &[&str] = &["dev.hologram.live.openai-compat"];
 pub fn extra_modules() -> Vec<Arc<dyn LiveModule>> {
     vec![
         Arc::new(modules::openai::OpenAiModule),
+        Arc::new(modules::receipts::ReceiptsModule),
         Arc::new(modules::console::ConsoleModule),
     ]
 }

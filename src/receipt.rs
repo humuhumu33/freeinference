@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 /// Stable identity of this record layout. Changing the fields changes the IRI.
-pub const RECEIPT_IRI: &str = "https://freeinference.ai/receipt/v1";
+pub const RECEIPT_IRI: &str = "https://freeinference.ai/receipt/v2";
 /// Object store kind under which receipts are kept.
 pub const RECEIPT_KIND: &str = "receipt";
 /// Media type of the stored receipt document.
@@ -32,16 +32,22 @@ pub struct Bound {
     pub prompt_kappa: String,
     pub params_kappa: String,
     pub output_kappa: String,
+    /// κ of the engine's own sealed answer record, when the engine seals
+    /// one. Empty when it does not; the position is still bound so the two
+    /// cases never share a canonical form.
+    #[serde(default)]
+    pub answer_kappa: String,
 }
 
 impl Bound {
-    fn operands(&self) -> [&str; 5] {
+    fn operands(&self) -> [&str; 6] {
         [
             &self.model_kappa,
             &self.engine_kappa,
             &self.prompt_kappa,
             &self.params_kappa,
             &self.output_kappa,
+            &self.answer_kappa,
         ]
     }
 
@@ -200,6 +206,7 @@ mod tests {
             prompt_kappa: kappa_of(b"prompt"),
             params_kappa: kappa_of(b"params"),
             output_kappa: kappa_of(b"output"),
+            answer_kappa: String::new(),
         }
     }
 

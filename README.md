@@ -13,7 +13,10 @@ Phase 0 and Phase 1 of the plan in `PLAN.md`.
 - Phase 0, homepage: shipped from `site/`, gated by `scripts/check_site.py`.
 - Phase 1, endpoint with receipts: `freeinference serve` exposes `/v1/chat/completions` and `/v1/models`. When the requested model resolves in the local catalog, `system_fingerprint` is the model κ joined with the engine κ, and the `x-hologram-receipt` header names a stored, signed receipt. When it does not resolve, neither is present.
 
-Later phases: verify, prefix cache, verified pull, catalog and Anthropic protocol, desktop, sharing.
+- Engine: with `inference.engine = "holo"` the daemon runs hologram-ai in process. Every weight is κ addressed: the model root κ is a manifest over config, tokenizer, every tensor and every derived artifact, verified fail closed at load. Decode is deterministic, so `system_fingerprint` names the exact model and engine build, and each answer seals a replayable record.
+- Phase 2, verify: `GET /v1/receipts/{κ}` returns a receipt; `POST /v1/receipts/{κ}/verify` and `freeinference verify <κ>` replay the answer on the engine and report confirmed, or refuted at the first divergent byte. Engines without replay refuse, and the refusal is reported as such.
+
+Later phases: prefix cache, verified pull, catalog and Anthropic protocol, desktop, sharing.
 
 ## Build and run
 
@@ -32,6 +35,7 @@ The daemon also serves a local console: `http://127.0.0.1:11435/dashboard` lists
 - κ addressing comes from `uor-hologram`.
 - OpenAI request validation uses `async-openai` types.
 - Receipts are signed with Ed25519.
+- The deterministic engine is `hologram-ai` at a pinned revision, reached through hologram-live's engine factory seam. The engine module is ported from hologram-live-ip's `unification/phase-1` unchanged apart from crate paths.
 
 One capability equals one module, one config section, one conformance suite, one feature file, one directory. Removing a capability means deleting its directory and one registration line.
 

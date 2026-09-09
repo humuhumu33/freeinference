@@ -24,6 +24,14 @@ enum Command {
         #[arg(long)]
         listen: Option<String>,
     },
+    /// Verify a receipt by exact replay against the running daemon.
+    Verify {
+        /// Receipt κ, as returned in the x-hologram-receipt header.
+        kappa: String,
+        /// Daemon base URL.
+        #[arg(long, default_value = "http://127.0.0.1:11435")]
+        endpoint: String,
+    },
 }
 
 #[tokio::main]
@@ -41,6 +49,36 @@ async fn main() {
 
 async fn run(config_path: Option<PathBuf>, command: Command) -> Result<(), LiveError> {
     match command {
+        Command::Verify { kappa, endpoint } => {
+            let url = format!(
+                "{}/v1/receipts/{kappa}/verify",
+                endpoint.trim_end_matches('/')
+            );
+            let response = reqwest::Client::new()
+                .post(&url)
+                .send()
+                .await
+                .map_err(|error| LiveError::Transport(error.to_string()))?;
+            let status = response.status();
+            let verdict: serde_json::Value = response
+                .json()
+                .await
+                .map_err(|error| LiveError::Protocol(error.to_string()))?;
+            if status.is_success() && verdict["verified"].as_bool() == Some(true) {
+                println!("confirmed: {kappa} replays byte for byte on this machine");
+                Ok(())
+            } else if let Some(byte) = verdict["replay"]["first_divergence_byte"].as_u64() {
+                println!("refuted: {kappa} diverges at byte {byte}");
+                std::process::exit(1)
+            } else {
+                let reason = verdict["reason"]
+                    .as_str()
+                    .or_else(|| verdict["error"]["message"].as_str())
+                    .unwrap_or("not verified");
+                println!("not verified: {reason}");
+                std::process::exit(1)
+            }
+        }
         Command::Serve { listen } => {
             let (mut config, _) = AppConfig::load(config_path.as_deref())?;
             if let Some(listen) = listen {
@@ -50,8 +88,9 @@ async fn run(config_path: Option<PathBuf>, command: Command) -> Result<(), LiveE
             config.validate()?;
             let tracing = hologram_live::observability::init(&config.tracing, &config.telemetry)?;
             let listen = config.server.listen.clone();
+            let engine = freeinference::modules::engine::factory_for(&config.inference);
             let state =
-                AppState::build_with_modules(config, tracing, freeinference::extra_modules())
+                AppState::build_with(config, tracing, freeinference::extra_modules(), engine)
                     .await?;
             hologram_live::server::serve_with_ready(state, move || {
                 println!("freeinference: serving http://{listen}/v1");

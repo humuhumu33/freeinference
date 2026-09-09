@@ -222,3 +222,54 @@ async fn conformance_co_02() {
     assert!(body.contains("system_fingerprint"));
     assert!(body.contains("x-hologram-receipt"));
 }
+
+#[tokio::test]
+async fn conformance_vf_01() {
+    let d = daemon().await;
+    let model = fixture_model(d._dir.path(), "tiny");
+    let info = d.state.models().import(&model).expect("import");
+    let (_, headers, _) = chat(&d, &info.name).await;
+    let id = headers
+        .get(RECEIPT_HEADER)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_owned();
+    let (status, body) = page(&d, &format!("/v1/receipts/{id}")).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let receipt: Receipt = serde_json::from_str(&body).expect("receipt json");
+    receipt.verify().expect("signature and kappa verify");
+    assert_eq!(receipt.bound.model_kappa, info.id);
+}
+
+#[tokio::test]
+async fn conformance_vf_02() {
+    let d = daemon().await;
+    let model = fixture_model(d._dir.path(), "tiny");
+    let info = d.state.models().import(&model).expect("import");
+    let (_, headers, _) = chat(&d, &info.name).await;
+    let id = headers
+        .get(RECEIPT_HEADER)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_owned();
+    let app = d.state.module_router().with_state(d.state.clone());
+    let response = app
+        .oneshot(
+            Request::post(format!("/v1/receipts/{id}/verify"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let verdict: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(verdict["integrity"], true);
+    assert_eq!(verdict["verified"], false);
+    assert!(verdict["reason"]
+        .as_str()
+        .unwrap()
+        .contains("no replayable record"));
+}
