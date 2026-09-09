@@ -4,49 +4,167 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Free verified AI inference</title>
-<meta name="description" content="Runs open models on your own machine. Every answer carries a receipt any machine can replay.">
+<meta name="description" content="Open models on your own machine. Every answer carries a receipt any machine can replay.">
+<link rel="icon" href="mark.svg" type="image/svg+xml">
 <style>
-  :root { color-scheme: light; }
+  /* Hologram brand layer: warm dark tokens from hologram-brand-kit/brand/css/hologram-warm.css (.dark). */
+  :root {
+    --background: #151312;
+    --foreground: #f6f5f4;
+    --card: #1e1c1b;
+    --card-foreground: #f6f5f4;
+    --secondary: #282624;
+    --muted: #282624;
+    --muted-foreground: #a6a4a2;
+    --brand: #e93b01;
+    --brand-foreground: #ffffff;
+    --border: #ffffff1a;
+    --ring: #757371;
+    --radius: 0.625rem;
+    --font-sans: "Geist", Inter, ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Archivo", "Geist", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "Geist Mono", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+    --tracking-display: -0.03em;
+    --tracking-caps: 0.22em;
+    color-scheme: dark;
+  }
+  @font-face { font-family: "Archivo"; src: url("fonts/Archivo-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+  @font-face { font-family: "Archivo"; src: url("fonts/Archivo-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+  @font-face { font-family: "Geist"; src: url("fonts/Geist-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Geist"; src: url("fonts/Geist-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+  @font-face { font-family: "Geist Mono"; src: url("fonts/GeistMono-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
-  body { font-family: ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif; color: #0A0A0A; background: #ffffff; line-height: 1.5; }
-  .hero { background: #0A0A0A; color: #ffffff; padding: 22vh 24px 18vh; }
-  .hero h1 { margin: 0 auto; max-width: 720px; font-size: clamp(2.4rem, 7vw, 5rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1.05; }
-  main { max-width: 720px; margin: 0 auto; padding: 64px 24px 96px; }
-  section { margin: 0 0 56px; }
-  h2 { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #666; margin: 0 0 16px; }
-  p { margin: 0 0 12px; font-size: 1.15rem; }
-  pre { margin: 0; padding: 18px 20px; background: #0A0A0A; color: #f2f2f2; border-radius: 8px; font-size: 0.95rem; overflow-x: auto; line-height: 1.55; }
-  code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-  .change { color: #7cf29a; }
-  ol { margin: 0; padding-left: 1.3em; }
-  ol li { margin: 0 0 14px; font-size: 1.15rem; }
-  ol li code { font-size: 0.95em; }
-  .cta { display: inline-block; padding: 14px 22px; background: #0A0A0A; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 1.05rem; font-weight: 600; }
-  .cta:hover { background: #222; }
-  footer { max-width: 720px; margin: 0 auto; padding: 0 24px 48px; color: #666; font-size: 0.9rem; }
-  footer a { color: #666; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--background);
+    color: var(--foreground);
+    line-height: 1.55;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+  /* Nav */
+  nav { position: sticky; top: 0; z-index: 2; background: color-mix(in srgb, var(--background) 82%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .mark { display: flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--font-display); font-weight: 600; letter-spacing: -0.01em; font-size: 17px; }
+  .mark img { width: 26px; height: 26px; }
+  .pill { display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--foreground); text-decoration: none; font-size: 14px; font-weight: 500; }
+  .pill:hover { border-color: var(--ring); }
+
+  /* Hero */
+  .hero { position: relative; overflow: hidden; text-align: center; padding: 128px 0 96px; }
+  .hero::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(60% 55% at 50% 0%, color-mix(in srgb, var(--brand) 16%, transparent), transparent 70%),
+      radial-gradient(circle at 1px 1px, #ffffff14 1px, transparent 1.5px);
+    background-size: auto, 28px 28px;
+    -webkit-mask-image: radial-gradient(70% 70% at 50% 30%, #000 40%, transparent 100%);
+    mask-image: radial-gradient(70% 70% at 50% 30%, #000 40%, transparent 100%);
+  }
+  .hero .wrap { position: relative; }
+  h1 {
+    font-family: var(--font-display); font-weight: 700; letter-spacing: var(--tracking-display);
+    font-size: clamp(2.8rem, 8vw, 6rem); line-height: 1.0; margin: 0 auto 28px; max-width: 900px;
+  }
+  .lede { margin: 0 auto; max-width: 700px; font-size: 1.2rem; color: var(--muted-foreground); }
+  .lede p { margin: 0 0 6px; }
+  .lede strong { color: var(--foreground); font-weight: 500; }
+  .hero .actions { margin-top: 36px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; height: 44px; padding: 0 22px; border-radius: 999px; text-decoration: none; font-size: 15px; font-weight: 500; border: 1px solid transparent; }
+  .btn.brand { background: var(--brand); color: var(--brand-foreground); }
+  .btn.brand:hover { filter: brightness(1.08); }
+  .btn.ghost { border-color: var(--border); background: transparent; color: var(--foreground); }
+  .btn.ghost:hover { border-color: var(--ring); }
+
+  /* Strip */
+  .strip { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .strip .wrap { display: flex; gap: 40px; justify-content: center; flex-wrap: wrap; padding: 18px 24px; }
+  .kicker { font-family: var(--font-mono); font-size: 12px; letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--muted-foreground); }
+
+  /* Sections */
+  section { padding: 88px 0 0; }
+  section:last-of-type { padding-bottom: 96px; }
+  .head { text-align: center; margin-bottom: 28px; }
+  .head h2 { font-family: var(--font-display); font-weight: 600; letter-spacing: var(--tracking-display); font-size: clamp(1.7rem, 3.4vw, 2.4rem); margin: 10px 0 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: calc(var(--radius) + 4px); }
+  pre { margin: 0; padding: 22px 24px; font-family: var(--font-mono); font-size: 14px; line-height: 1.7; overflow-x: auto; color: var(--foreground); }
+  code { font-family: var(--font-mono); }
+  .change { color: var(--brand); }
+  .cmd { display: flex; align-items: center; gap: 14px; padding: 6px 8px 6px 22px; }
+  .cmd pre { padding: 14px 0; flex: 1; }
+  .prompt { color: var(--muted-foreground); user-select: none; }
+  .install .card { max-width: 720px; margin: 0 auto; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .proof { padding: 26px 24px 28px; display: flex; flex-direction: column; gap: 14px; }
+  .proof .num { font-family: var(--font-mono); font-size: 12px; letter-spacing: var(--tracking-caps); color: var(--brand); }
+  .proof p { margin: 0; color: var(--muted-foreground); }
+  .proof p strong { color: var(--foreground); font-weight: 500; }
+  .proof code { font-size: 0.92em; color: var(--foreground); background: var(--secondary); padding: 2px 6px; border-radius: 6px; }
+
+  .cta { text-align: center; }
+  .cta .card { padding: 64px 24px; background: linear-gradient(180deg, var(--card), var(--background)); }
+  .cta h2 { font-family: var(--font-display); font-weight: 600; letter-spacing: var(--tracking-display); font-size: clamp(1.6rem, 3vw, 2.2rem); margin: 0 0 24px; }
+
+  footer { border-top: 1px solid var(--border); }
+  footer .wrap { display: flex; align-items: center; justify-content: space-between; height: 72px; color: var(--muted-foreground); font-size: 14px; }
+  footer a { text-decoration: none; }
+
+  @media (max-width: 760px) {
+    .grid { grid-template-columns: 1fr; }
+    .hero { padding: 88px 0 72px; }
+    .strip .wrap { gap: 18px; }
+  }
 </style>
 </head>
 <body>
+<nav>
+  <div class="wrap">
+    <a class="mark" href="https://gethologram.ai/"><img src="mark.svg" alt="">Hologram</a>
+    <a class="pill" href="https://github.com/humuhumu33/freeinference">GitHub</a>
+  </div>
+</nav>
+
 <header class="hero">
-  <h1>Free verified AI inference.</h1>
+  <div class="wrap">
+    <h1>Free verified AI inference.</h1>
+    <div class="lede">
+      <p><strong>Open models on your own machine.</strong> No account, no key, no price per token.</p>
+      <p>Every answer carries a receipt any machine can replay.</p>
+      <p>A prompt you repeat costs nothing the second time.</p>
+    </div>
+    <div class="actions">
+      <a class="btn brand" href="#install">Install</a>
+    </div>
+  </div>
 </header>
+
+<div class="strip">
+  <div class="wrap">
+    <span class="kicker">OpenAI compatible</span>
+    <span class="kicker">On CPU</span>
+    <span class="kicker">Local</span>
+    <span class="kicker">Open source</span>
+  </div>
+</div>
+
 <main>
-  <section>
-    <p>Runs open models on your own machine. No account, no key, no price per token.</p>
-    <p>Every answer carries a receipt that any machine can replay.</p>
-    <p>A prompt you repeat costs nothing the second time.</p>
+  <section class="install" id="install">
+    <div class="wrap">
+      <div class="head"><span class="kicker">Install</span></div>
+      <div class="card cmd"><span class="prompt">$</span><pre><code>curl https://humuhumu33.github.io/freeinference/install | sh</code></pre></div>
+    </div>
   </section>
 
   <section>
-    <h2>Install</h2>
-    <pre><code>curl https://humuhumu33.github.io/freeinference/install | sh</code></pre>
-  </section>
-
-  <section>
-    <h2>Change one line</h2>
-    <pre><code>from openai import OpenAI
+    <div class="wrap">
+      <div class="head"><span class="kicker">Change one line</span></div>
+      <div class="card"><pre><code>from openai import OpenAI
 
 client = OpenAI(<span class="change">base_url="http://127.0.0.1:11435/v1"</span>, api_key="local")
 
@@ -54,24 +172,45 @@ reply = client.chat.completions.create(
     model="qwen3:8b",
     messages=[{"role": "user", "content": "Hello"}],
 )
-print(reply.system_fingerprint)</code></pre>
+print(reply.system_fingerprint)</code></pre></div>
+    </div>
   </section>
 
-  <section>
-    <h2>Three proofs</h2>
-    <ol>
-      <li>The model you load matches the hash its publisher shipped. Run <code>hologram verify</code> and read one line.</li>
-      <li>The answer you get replays byte for byte on any machine. The receipt names the model, the prompt and the settings.</li>
-      <li>The prompt you send twice is served from work already done. The usage field says how much.</li>
-    </ol>
+  <section id="proofs">
+    <div class="wrap">
+      <div class="head"><span class="kicker">Three proofs</span></div>
+      <div class="grid">
+        <div class="card proof">
+          <span class="num">01</span>
+          <p><strong>The model you load matches the hash its publisher shipped.</strong> One line from <code>hologram verify</code>.</p>
+        </div>
+        <div class="card proof">
+          <span class="num">02</span>
+          <p><strong>The answer you get replays byte for byte on any machine.</strong> The receipt names model, prompt and settings.</p>
+        </div>
+        <div class="card proof">
+          <span class="num">03</span>
+          <p><strong>The prompt you send twice is served from work already done.</strong> Usage says how much.</p>
+        </div>
+      </div>
+    </div>
   </section>
 
-  <section>
-    <a class="cta" href="https://github.com/humuhumu33/freeinference">Get it on GitHub</a>
+  <section class="cta">
+    <div class="wrap">
+      <div class="card">
+        <h2>Verified, local, yours.</h2>
+        <a class="btn brand" href="https://github.com/humuhumu33/freeinference">Get it on GitHub</a>
+      </div>
+    </div>
   </section>
 </main>
+
 <footer>
-  <a href="https://gethologram.ai/">Hologram</a> · Apache 2.0 or MIT
+  <div class="wrap">
+    <a class="mark" href="https://gethologram.ai/"><img src="mark.svg" alt="">Hologram</a>
+    <span>Apache 2.0 or MIT</span>
+  </div>
 </footer>
 </body>
 </html>
