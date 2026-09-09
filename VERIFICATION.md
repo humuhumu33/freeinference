@@ -29,6 +29,10 @@ The fingerprint on these answers was the model root κ `blake3:e41292a4…`, a m
 
 `just vv` runs all four. CI runs the same commands on ubuntu.
 
+## Engine build and CI
+
+The engine's substrate, `hologram-archive` and siblings, is pinned by hologram-ai at revision `15d155b9`, the commit that fixes summation order on every target. That commit exists only in the private repository `humuhumu33/hologram` today. Public CI therefore builds with `--no-default-features`, which verifies everything except the engine, and the `engine` job runs the full build only when the repository secret `HOLOGRAM_GIT_TOKEN` grants read access. Until one of three things happens, the engine build is verified on the developer machine only: the substrate commit is upstreamed to `Hologram-Technologies/hologram`, the private repository is made public, or the token is added.
+
 ## Not yet armed
 
 The Rust CI job has not yet produced a failing run from a planted defect on GitHub itself; the records above are local runs at the commit that introduced Phase 1. The PrismPM template with its pinned devcontainer and digest bound action is adopted in a following step and will re-arm every gate under its own record.

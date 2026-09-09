@@ -3,6 +3,7 @@
 //! Not a `LiveModule`: the engine is supplied to hologram-live through its
 //! engine factory seam. Selected when `inference.engine = "holo"`.
 
+#[cfg(feature = "engine-holo")]
 pub mod holo;
 
 use hologram_live::config::InferenceConfig;
@@ -30,9 +31,23 @@ pub fn factory_for(config: &InferenceConfig) -> Option<EngineFactory> {
     if config.engine != ENGINE_NAME {
         return None;
     }
-    Some(Box::new(
-        |config: &InferenceConfig, catalog: Arc<ModelCatalog>| {
-            Ok(Arc::new(holo::HoloEngine::new(config, catalog)?) as Arc<dyn InferenceEngine>)
-        },
+    Some(Box::new(build_engine))
+}
+
+#[cfg(feature = "engine-holo")]
+fn build_engine(
+    config: &InferenceConfig,
+    catalog: Arc<ModelCatalog>,
+) -> hologram_live::error::Result<Arc<dyn InferenceEngine>> {
+    Ok(Arc::new(holo::HoloEngine::new(config, catalog)?))
+}
+
+#[cfg(not(feature = "engine-holo"))]
+fn build_engine(
+    _config: &InferenceConfig,
+    _catalog: Arc<ModelCatalog>,
+) -> hologram_live::error::Result<Arc<dyn InferenceEngine>> {
+    Err(hologram_live::error::LiveError::Config(
+        "inference.engine = \"holo\" needs a binary built with the engine-holo feature".to_owned(),
     ))
 }

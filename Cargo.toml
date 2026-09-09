@@ -29,12 +29,12 @@ hologram-live = { git = "https://github.com/humuhumu33/hologram-live-upstream", 
 hologram = { package = "uor-hologram", git = "https://github.com/Hologram-Technologies/hologram", rev = "2bda6a9a9476872dade705bd61ece4209607f6da", default-features = false, features = ["archive", "space"] }
 # The deterministic engine and its tokenizer, safetensors and quantization
 # crates, pinned to the fork's default branch head so CI can fetch it.
-hologram-ai = { git = "https://github.com/humuhumu33/hologram-ai", rev = "50ebbfe3dd9b558cf238f3f52784233e7fe1c254" }
-hologram-ai-tokenizer = { git = "https://github.com/humuhumu33/hologram-ai", rev = "50ebbfe3dd9b558cf238f3f52784233e7fe1c254" }
-hologram-ai-safetensors = { git = "https://github.com/humuhumu33/hologram-ai", rev = "50ebbfe3dd9b558cf238f3f52784233e7fe1c254" }
-hologram-ai-common = { git = "https://github.com/humuhumu33/hologram-ai", rev = "50ebbfe3dd9b558cf238f3f52784233e7fe1c254" }
-sysinfo = { version = "0.32", default-features = false, features = ["system"] }
-tonic = { version = "0.14", default-features = false }
+hologram-ai = { git = "https://github.com/humuhumu33/hologram-ai", rev = "50ebbfe3dd9b558cf238f3f52784233e7fe1c254", optional = true }
+hologram-ai-tokenizer = { git = "https://github.com/humuhumu33/hologram-ai", rev = "50ebbfe3dd9b558cf238f3f52784233e7fe1c254", optional = true }
+hologram-ai-safetensors = { git = "https://github.com/humuhumu33/hologram-ai", rev = "50ebbfe3dd9b558cf238f3f52784233e7fe1c254", optional = true }
+hologram-ai-common = { git = "https://github.com/humuhumu33/hologram-ai", rev = "50ebbfe3dd9b558cf238f3f52784233e7fe1c254", optional = true }
+sysinfo = { version = "0.32", default-features = false, features = ["system"], optional = true }
+tonic = { version = "0.14", default-features = false, optional = true }
 # OpenAI wire types, used to validate requests against the published shape.
 async-openai = { version = "0.42", default-features = false, features = ["chat-completion-types"] }
 axum = { version = "0.8", features = ["json", "tokio", "http1"] }
@@ -49,6 +49,20 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "syn
 tokio-stream = "0.1"
 tracing = "0.1"
 utoipa = { version = "5", features = ["axum_extras"] }
+
+[features]
+default = ["engine-holo"]
+# The deterministic engine. Its substrate is pinned to a revision that lives
+# in a private repository today, so a build without credentials turns this
+# off and verifies everything except the engine.
+engine-holo = [
+    "dep:hologram-ai",
+    "dep:hologram-ai-tokenizer",
+    "dep:hologram-ai-safetensors",
+    "dep:hologram-ai-common",
+    "dep:sysinfo",
+    "dep:tonic",
+]
 
 [dev-dependencies]
 http-body-util = "0.1"
