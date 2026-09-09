@@ -1,10 +1,8 @@
-//! Deterministic engine: hologram-ai in process, every weight κ addressed.
-//!
-//! Not a `LiveModule`: the engine is supplied to hologram-live through its
-//! engine factory seam. Selected when `inference.engine = "holo"`.
-
-#[cfg(feature = "engine-holo")]
-pub mod holo;
+//! Deterministic engine identity. The engine itself lives in the separate
+//! `engine/` package (`freeinference-holo`), because its substrate is pinned
+//! to a revision that is private today; keeping it out of this manifest
+//! keeps this crate buildable by anyone. This module holds what both
+//! binaries share: the engine name and its build identity.
 
 use hologram_live::config::InferenceConfig;
 use hologram_live::inference::{EngineFactory, InferenceEngine};
@@ -14,8 +12,9 @@ use std::sync::Arc;
 /// Engine name in `inference.engine`.
 pub const ENGINE_NAME: &str = "holo";
 
-/// The exact hologram-ai revision compiled into this binary. Kept in one
-/// place next to the Cargo pin; the two must move together.
+/// The exact hologram-ai revision the engine package compiles in. Kept
+/// here next to `build_kappa` and mirrored in `engine/Cargo.toml`; the two
+/// must move together.
 pub const HOLOGRAM_AI_REV: &str = "50ebbfe3dd9b558cf238f3f52784233e7fe1c254";
 
 /// Build identity of the deterministic engine: the address of the pinned
@@ -25,29 +24,20 @@ pub fn build_kappa() -> String {
     crate::receipt::kappa_of(format!("hologram-ai/{HOLOGRAM_AI_REV}/{tier}").as_bytes())
 }
 
-/// Returns the factory hologram-live calls when the configured engine is
-/// ours, and `None` otherwise so hologram-live's own engines apply.
-pub fn factory_for(config: &InferenceConfig) -> Option<EngineFactory> {
+/// The factory a binary built without the engine package supplies: it
+/// refuses `inference.engine = "holo"` with the reason, never silently
+/// falls back to another engine.
+pub fn refusing_factory(config: &InferenceConfig) -> Option<EngineFactory> {
     if config.engine != ENGINE_NAME {
         return None;
     }
-    Some(Box::new(build_engine))
-}
-
-#[cfg(feature = "engine-holo")]
-fn build_engine(
-    config: &InferenceConfig,
-    catalog: Arc<ModelCatalog>,
-) -> hologram_live::error::Result<Arc<dyn InferenceEngine>> {
-    Ok(Arc::new(holo::HoloEngine::new(config, catalog)?))
-}
-
-#[cfg(not(feature = "engine-holo"))]
-fn build_engine(
-    _config: &InferenceConfig,
-    _catalog: Arc<ModelCatalog>,
-) -> hologram_live::error::Result<Arc<dyn InferenceEngine>> {
-    Err(hologram_live::error::LiveError::Config(
-        "inference.engine = \"holo\" needs a binary built with the engine-holo feature".to_owned(),
+    Some(Box::new(
+        |_: &InferenceConfig,
+         _: Arc<ModelCatalog>|
+         -> hologram_live::error::Result<Arc<dyn InferenceEngine>> {
+            Err(hologram_live::error::LiveError::Config(
+                "inference.engine = \"holo\" needs the freeinference-holo binary (built from engine/)".to_owned(),
+            ))
+        },
     ))
 }

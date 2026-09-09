@@ -31,7 +31,7 @@ The fingerprint on these answers was the model root κ `blake3:e41292a4…`, a m
 
 ## Engine build and CI
 
-The engine's substrate, `hologram-archive` and siblings, is pinned by hologram-ai at revision `15d155b9`, the commit that fixes summation order on every target. That commit exists only in the private repository `humuhumu33/hologram` today. Public CI therefore builds with `--no-default-features`, which verifies everything except the engine, and the `engine` job runs the full build only when the repository secret `HOLOGRAM_GIT_TOKEN` grants read access. Until one of three things happens, the engine build is verified on the developer machine only: the substrate commit is upstreamed to `Hologram-Technologies/hologram`, the private repository is made public, or the token is added.
+The engine's substrate, `hologram-archive` and siblings, is pinned by hologram-ai at revision `15d155b9`, the commit that fixes summation order on every target. That commit exists only in the private repository `humuhumu33/hologram` today. The engine therefore lives in its own package, `engine/` (`freeinference-holo`), with its own lockfile, so the root package carries no private pin and public CI verifies it fully. The `engine` job builds `engine/` only when the repository secret `HOLOGRAM_GIT_TOKEN` grants read access. Until one of three things happens, the engine build is verified on the developer machine only: the substrate commit is upstreamed to `Hologram-Technologies/hologram`, the private repository is made public, or the token is added.
 
 ## Not yet armed
 

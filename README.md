@@ -21,9 +21,12 @@ Later phases: prefix cache, verified pull, catalog and Anthropic protocol, deskt
 ## Build and run
 
 ```bash
-cargo build --locked
+cargo build --locked                          # root package: endpoint, receipts, console, verify
+cargo build --locked --manifest-path engine/Cargo.toml   # freeinference-holo: the same binary with the deterministic engine compiled in
 cargo run --locked -- serve
 ```
+
+The root package builds for anyone. The engine package pins hologram-ai, whose substrate revision is private today, so it needs read access to build; see VERIFICATION.md.
 
 Then point any OpenAI client at `http://127.0.0.1:11435/v1`.
 

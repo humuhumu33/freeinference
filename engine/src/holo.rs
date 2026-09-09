@@ -7,6 +7,7 @@
 // Ported verbatim; style lints stay off so the file diffs cleanly against
 // its origin. Behaviour is unchanged.
 #![allow(
+    dead_code,
     clippy::too_many_arguments,
     clippy::manual_clamp,
     clippy::drop_non_drop

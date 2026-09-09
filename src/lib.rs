@@ -7,6 +7,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod cli;
 pub mod modules;
 pub mod receipt;
 

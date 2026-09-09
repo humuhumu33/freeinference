@@ -26,10 +26,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
       - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
       - run: cargo fmt --all -- --check
-      # Public build: everything except the deterministic engine, whose
-      # substrate pin is private today. See VERIFICATION.md.
-      - run: cargo clippy --all-targets --locked --no-default-features -- -D warnings
-      - run: cargo test --locked --no-default-features -- --test-threads=1
+      # Public build: the root package, which carries no private pin. The
+      # deterministic engine is the separate engine/ package below.
+      - run: cargo clippy --all-targets --locked -- -D warnings
+      - run: cargo test --locked -- --test-threads=1
 
   engine:
     runs-on: ubuntu-24.04
@@ -49,6 +49,6 @@ jobs:
           TOKEN: ${{ secrets.HOLOGRAM_GIT_TOKEN }}
         run: git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "https://github.com/"
       - if: steps.token.outputs.ok == 'true'
-        run: cargo clippy --all-targets --locked -- -D warnings
+        run: cargo clippy --manifest-path engine/Cargo.toml --all-targets --locked -- -D warnings
       - if: steps.token.outputs.ok == 'true'
-        run: cargo test --locked -- --test-threads=1
+        run: cargo build --manifest-path engine/Cargo.toml --locked
