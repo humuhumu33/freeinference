@@ -21,7 +21,10 @@ const REPLACED: &[&str] = &["dev.hologram.live.openai-compat"];
 
 /// Every module this crate contributes, in registration order.
 pub fn extra_modules() -> Vec<Arc<dyn LiveModule>> {
-    vec![Arc::new(modules::openai::OpenAiModule)]
+    vec![
+        Arc::new(modules::openai::OpenAiModule),
+        Arc::new(modules::console::ConsoleModule),
+    ]
 }
 
 /// Adjusts a hologram-live configuration so this crate's modules are enabled

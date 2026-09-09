@@ -14,6 +14,8 @@ Every registered id has exactly one Gherkin scenario and exactly one executable 
 | `RC-02` | `build` | `receipts` | The receipt named in the response header resolves to a stored object whose kappa matches its bytes and whose signature verifies. |
 | `RC-03` | `build` | `receipts` | A response for a model that does not resolve in the catalog carries no fingerprint and no receipt header. |
 | `RC-04` | `build` | `receipts` | Every module registers and the merged router boots without a route collision. |
+| `CO-01` | `build` | `console` | The daemon serves a dashboard at /dashboard that lists the sealed receipts on this machine. |
+| `CO-02` | `build` | `console` | The daemon serves a playground at /playground that sends prompts to the local OpenAI surface and shows each answer's fingerprint and receipt. |
 
 ## Claims that are not conformance ids
 

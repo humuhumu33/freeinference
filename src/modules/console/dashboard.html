@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard · freeinference</title>
+<link rel="stylesheet" href="/console.css">
+</head>
+<body>
+<nav>
+  <div class="bar">
+    <a class="mark" href="/dashboard"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="4" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="5" cy="20" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="4" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="19" cy="20" r="2"/></svg>freeinference</a>
+    <div class="links"><a class="active" href="/dashboard">Dashboard</a><a href="/playground">Playground</a><a href="/docs">Docs</a></div>
+    <div class="status"><span class="dot" id="dot"></span><span id="status">connecting</span></div>
+  </div>
+</nav>
+
+<main class="page">
+  <h1>Dashboard</h1>
+  <div class="layout">
+    <aside class="stack">
+      <p class="kicker">Local daemon</p>
+      <div class="card stat"><div class="label">Endpoint</div><div class="value" style="font-size:16px" id="endpoint"></div><div class="sub">No API key. Any string works.</div></div>
+      <div class="card stat"><div class="label">Models</div><div class="value" id="models">0</div><div class="sub">in the local catalog</div></div>
+      <div class="card stat"><div class="label">Receipts</div><div class="value" id="receipts">0</div><div class="sub">sealed answers on this machine</div></div>
+    </aside>
+
+    <section>
+      <p class="kicker">Inferences</p>
+      <div class="card">
+        <table>
+          <thead><tr><th>Time</th><th>Model κ</th><th>Receipt κ</th><th>Output κ</th><th>Status</th></tr></thead>
+          <tbody id="rows"><tr><td colspan="5" class="empty">No receipts yet. Send a prompt from the Playground.</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="two">
+        <div class="card">
+          <h3>Quickstart</h3>
+          <p class="hint">Change one line in any OpenAI client.</p>
+<pre><code>from openai import OpenAI
+
+client = OpenAI(<span class="change" id="snippet-url">base_url="http://127.0.0.1:11435/v1"</span>, api_key="local")
+reply = client.chat.completions.create(
+    model=<span id="snippet-model">"model"</span>,
+    messages=[{"role": "user", "content": "Hello"}],
+)
+print(reply.system_fingerprint)</code></pre>
+        </div>
+        <div class="card">
+          <h3>Models</h3>
+          <p class="hint">Import a model to get fingerprints and receipts.</p>
+          <div id="model-list" style="padding:0 18px 18px;display:flex;flex-wrap:wrap;gap:8px"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+const short = k => k ? k.replace(/^blake3:/, "").slice(0, 12) + "…" : "";
+const when = ms => new Date(ms).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+const origin = location.origin;
+document.getElementById("endpoint").textContent = origin + "/v1";
+document.getElementById("snippet-url").textContent = `base_url="${origin}/v1"`;
+
+async function load() {
+  try {
+    const health = await fetch("/healthz").then(r => r.json());
+    document.getElementById("dot").className = "dot ok";
+    document.getElementById("status").textContent = `ready · ${health.modules_ready} modules`;
+  } catch { document.getElementById("status").textContent = "offline"; }
+
+  const models = await fetch("/v1/models").then(r => r.json()).then(j => j.data || []).catch(() => []);
+  document.getElementById("models").textContent = models.length;
+  const list = document.getElementById("model-list");
+  list.innerHTML = models.map(m => `<span class="badge mono">${m.id}</span>`).join("") || `<span class="empty" style="padding:0">none imported</span>`;
+  if (models[0]) document.getElementById("snippet-model").textContent = `"${models[0].id}"`;
+
+  const objects = await fetch("/api/v1/objects").then(r => r.json()).catch(() => []);
+  const receipts = objects.filter(o => o.kind === "receipt").sort((a, b) => b.created_at_millis - a.created_at_millis);
+  document.getElementById("receipts").textContent = receipts.length;
+  if (!receipts.length) return;
+  const rows = await Promise.all(receipts.slice(0, 25).map(async o => {
+    const r = await fetch(`/api/v1/objects/${o.id}`).then(r => r.json()).catch(() => ({}));
+    return `<tr><td>${when(o.created_at_millis)}</td><td class="mono" title="${r.model_kappa || ""}">${short(r.model_kappa)}</td><td class="mono"><a href="/api/v1/objects/${o.id}" title="${o.id}">${short(o.id)}</a></td><td class="mono" title="${r.output_kappa || ""}">${short(r.output_kappa)}</td><td><span class="badge ok">Sealed</span></td></tr>`;
+  }));
+  document.getElementById("rows").innerHTML = rows.join("");
+}
+load();
+</script>
+</body>
+</html>

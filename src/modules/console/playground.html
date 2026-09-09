@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Playground · freeinference</title>
+<link rel="stylesheet" href="/console.css">
+</head>
+<body>
+<nav>
+  <div class="bar">
+    <a class="mark" href="/dashboard"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="4" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="5" cy="20" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="4" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="19" cy="20" r="2"/></svg>freeinference</a>
+    <div class="links"><a href="/dashboard">Dashboard</a><a class="active" href="/playground">Playground</a><a href="/docs">Docs</a></div>
+    <div class="status"><span class="dot" id="dot"></span><span id="status">connecting</span></div>
+  </div>
+</nav>
+
+<main class="page">
+  <h1>Playground</h1>
+  <div class="play">
+    <section class="chat">
+      <div class="messages" id="messages"><div class="placeholder">Send a prompt. Every answer comes back with a fingerprint and a receipt.</div></div>
+      <form class="composer" id="composer">
+        <textarea id="input" placeholder="Say something" rows="2"></textarea>
+        <div class="row"><span class="mono" id="hint" style="color:var(--muted-foreground)"></span><button class="btn" id="send" type="submit">Send</button></div>
+      </form>
+    </section>
+
+    <aside class="card settings">
+      <p class="kicker" style="margin:0">Settings</p>
+      <label>Model<select id="model"></select></label>
+      <label><span class="head">Temperature <span class="v" id="tv">0.7</span></span><input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7"></label>
+      <label><span class="head">Max tokens <span class="v" id="mv">512</span></span><input type="range" id="max_tokens" min="16" max="4096" step="16" value="512"></label>
+      <label>Seed<input type="number" id="seed" placeholder="none"></label>
+      <label>System prompt<textarea id="system" placeholder="Set the behaviour of the model."></textarea></label>
+    </aside>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const short = k => k ? k.replace(/^blake3:/, "").slice(0, 12) + "…" : "";
+const history = [];
+$("temperature").oninput = e => $("tv").textContent = e.target.value;
+$("max_tokens").oninput = e => $("mv").textContent = e.target.value;
+
+async function init() {
+  try {
+    const h = await fetch("/healthz").then(r => r.json());
+    $("dot").className = "dot ok"; $("status").textContent = `ready · ${h.modules_ready} modules`;
+  } catch { $("status").textContent = "offline"; }
+  const models = await fetch("/v1/models").then(r => r.json()).then(j => j.data || []).catch(() => []);
+  $("model").innerHTML = models.map(m => `<option value="${m.id}">${m.id}</option>`).join("") || `<option value="">no model imported</option>`;
+}
+
+function add(role, text) {
+  const box = $("messages");
+  if (box.firstElementChild?.classList.contains("placeholder")) box.innerHTML = "";
+  const el = document.createElement("div");
+  el.className = `msg ${role}`; el.textContent = text; box.appendChild(el); box.scrollTop = box.scrollHeight;
+  return el;
+}
+
+$("composer").onsubmit = async e => {
+  e.preventDefault();
+  const text = $("input").value.trim(); if (!text) return;
+  $("input").value = ""; $("send").disabled = true;
+  add("user", text); history.push({ role: "user", content: text });
+  const messages = $("system").value.trim() ? [{ role: "system", content: $("system").value.trim() }, ...history] : history;
+  const body = { model: $("model").value, messages, temperature: Number($("temperature").value), max_tokens: Number($("max_tokens").value) };
+  if ($("seed").value) body.seed = Number($("seed").value);
+  const started = performance.now();
+  try {
+    const res = await fetch("/v1/chat/completions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error?.message || res.statusText);
+    const content = json.choices?.[0]?.message?.content ?? "";
+    history.push({ role: "assistant", content });
+    const el = add("assistant", content);
+    const receipt = res.headers.get("x-hologram-receipt");
+    const meta = document.createElement("div"); meta.className = "meta";
+    meta.innerHTML = json.system_fingerprint
+      ? `<span class="badge mono" title="${json.system_fingerprint}">fingerprint ${short(json.system_fingerprint.split(";")[0])}</span>` +
+        (receipt ? `<a class="badge mono ok" href="/api/v1/objects/${receipt}" title="${receipt}">receipt ${short(receipt)}</a>` : "")
+      : `<span class="badge">no fingerprint: model not in catalog</span>`;
+    el.appendChild(meta);
+    $("hint").textContent = `${Math.round(performance.now() - started)} ms · ${res.headers.get("x-hologram-stream") || ""}`;
+  } catch (err) {
+    add("assistant", `Error: ${err.message}`);
+  } finally { $("send").disabled = false; $("input").focus(); }
+};
+init();
+</script>
+</body>
+</html>

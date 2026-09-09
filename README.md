@@ -24,6 +24,8 @@ cargo run --locked -- serve
 
 Then point any OpenAI client at `http://127.0.0.1:11435/v1`.
 
+The daemon also serves a local console: `http://127.0.0.1:11435/dashboard` lists the sealed receipts on this machine, `http://127.0.0.1:11435/playground` sends prompts and shows each answer's fingerprint and receipt. Static pages, no build step, no key.
+
 ## How it is built
 
 - Daemon, module system, router, OpenAPI, CLI, config, audit log and BDD harness come from `hologram-live`, depended on by git revision, never forked. The only upstream change is a ten line seam that lets a downstream binary register modules.

@@ -45,3 +45,15 @@ id = "RC-04"
 suite = "receipts"
 level = "build"
 statement = "Every module registers and the merged router boots without a route collision."
+
+[[id]]
+id = "CO-01"
+suite = "console"
+level = "build"
+statement = "The daemon serves a dashboard at /dashboard that lists the sealed receipts on this machine."
+
+[[id]]
+id = "CO-02"
+suite = "console"
+level = "build"
+statement = "The daemon serves a playground at /playground that sends prompts to the local OpenAI surface and shows each answer's fingerprint and receipt."

@@ -185,3 +185,40 @@ async fn conformance_rc_04() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 }
+
+async fn page(daemon: &Daemon, path: &str) -> (StatusCode, String) {
+    let app = daemon
+        .state
+        .module_router()
+        .with_state(daemon.state.clone());
+    let response = app
+        .oneshot(Request::get(path).body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    let status = response.status();
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    (status, String::from_utf8_lossy(&bytes).into_owned())
+}
+
+#[tokio::test]
+async fn conformance_co_01() {
+    let d = daemon().await;
+    let (status, body) = page(&d, "/dashboard").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("Inferences"));
+    assert!(body.contains("/api/v1/objects"));
+    assert!(body.contains("kind === \"receipt\""));
+    let (status, css) = page(&d, "/console.css").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(css.contains("--brand: #e93b01"));
+}
+
+#[tokio::test]
+async fn conformance_co_02() {
+    let d = daemon().await;
+    let (status, body) = page(&d, "/playground").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("/v1/chat/completions"));
+    assert!(body.contains("system_fingerprint"));
+    assert!(body.contains("x-hologram-receipt"));
+}
