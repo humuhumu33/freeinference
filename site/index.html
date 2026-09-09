@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free verified AI inference</title>
+<meta name="description" content="Runs open models on your own machine. Every answer carries a receipt any machine can replay.">
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif; color: #0A0A0A; background: #ffffff; line-height: 1.5; }
+  .hero { background: #0A0A0A; color: #ffffff; padding: 22vh 24px 18vh; }
+  .hero h1 { margin: 0 auto; max-width: 720px; font-size: clamp(2.4rem, 7vw, 5rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1.05; }
+  main { max-width: 720px; margin: 0 auto; padding: 64px 24px 96px; }
+  section { margin: 0 0 56px; }
+  h2 { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #666; margin: 0 0 16px; }
+  p { margin: 0 0 12px; font-size: 1.15rem; }
+  pre { margin: 0; padding: 18px 20px; background: #0A0A0A; color: #f2f2f2; border-radius: 8px; font-size: 0.95rem; overflow-x: auto; line-height: 1.55; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  .change { color: #7cf29a; }
+  ol { margin: 0; padding-left: 1.3em; }
+  ol li { margin: 0 0 14px; font-size: 1.15rem; }
+  ol li code { font-size: 0.95em; }
+  .cta { display: inline-block; padding: 14px 22px; background: #0A0A0A; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 1.05rem; font-weight: 600; }
+  .cta:hover { background: #222; }
+  footer { max-width: 720px; margin: 0 auto; padding: 0 24px 48px; color: #666; font-size: 0.9rem; }
+  footer a { color: #666; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <h1>Free verified AI inference.</h1>
+</header>
+<main>
+  <section>
+    <p>Runs open models on your own machine. No account, no key, no price per token.</p>
+    <p>Every answer carries a receipt that any machine can replay.</p>
+    <p>A prompt you repeat costs nothing the second time.</p>
+  </section>
+
+  <section>
+    <h2>Install</h2>
+    <pre><code>curl https://humuhumu33.github.io/freeinference/install | sh</code></pre>
+  </section>
+
+  <section>
+    <h2>Change one line</h2>
+    <pre><code>from openai import OpenAI
+
+client = OpenAI(<span class="change">base_url="http://127.0.0.1:11435/v1"</span>, api_key="local")
+
+reply = client.chat.completions.create(
+    model="qwen3:8b",
+    messages=[{"role": "user", "content": "Hello"}],
+)
+print(reply.system_fingerprint)</code></pre>
+  </section>
+
+  <section>
+    <h2>Three proofs</h2>
+    <ol>
+      <li>The model you load matches the hash its publisher shipped. Run <code>hologram verify</code> and read one line.</li>
+      <li>The answer you get replays byte for byte on any machine. The receipt names the model, the prompt and the settings.</li>
+      <li>The prompt you send twice is served from work already done. The usage field says how much.</li>
+    </ol>
+  </section>
+
+  <section>
+    <a class="cta" href="https://github.com/humuhumu33/freeinference">Get it on GitHub</a>
+  </section>
+</main>
+<footer>
+  <a href="https://gethologram.ai/">Hologram</a> · Apache 2.0 or MIT
+</footer>
+</body>
+</html>

@@ -1,0 +1,47 @@
+# Every public capability is one claim. Each id has exactly one scenario in
+# features/suites/<suite>.feature and exactly one test named conformance_<id>.
+# Levels: some-true (from an authority, not established here), build
+# (validated against an oracle here, evidence not proof), open (measured,
+# never asserted).
+
+[[id]]
+id = "SI-01"
+suite = "site"
+level = "build"
+statement = "The homepage contains no hyphen or dash in any visible text, code samples included."
+
+[[id]]
+id = "SI-02"
+suite = "site"
+level = "build"
+statement = "The homepage headline is exactly Free verified AI inference."
+
+[[id]]
+id = "SI-03"
+suite = "site"
+level = "build"
+statement = "The homepage prose is under 120 words, code samples excluded."
+
+[[id]]
+id = "RC-01"
+suite = "receipts"
+level = "build"
+statement = "A stock OpenAI client receives a system fingerprint equal to the resolved model kappa joined with the engine kappa."
+
+[[id]]
+id = "RC-02"
+suite = "receipts"
+level = "build"
+statement = "The receipt named in the response header resolves to a stored object whose kappa matches its bytes and whose signature verifies."
+
+[[id]]
+id = "RC-03"
+suite = "receipts"
+level = "build"
+statement = "A response for a model that does not resolve in the catalog carries no fingerprint and no receipt header."
+
+[[id]]
+id = "RC-04"
+suite = "receipts"
+level = "build"
+statement = "Every module registers and the merged router boots without a route collision."

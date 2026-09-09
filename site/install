@@ -1,0 +1,15 @@
+#!/bin/sh
+# Free verified AI inference: installer.
+# Prebuilt binaries are published with a later phase. Until then this
+# installs from source with cargo, which is honest and works today.
+set -eu
+
+if ! command -v cargo >/dev/null 2>&1; then
+  echo "freeinference: cargo is required until prebuilt binaries ship." >&2
+  echo "Install Rust from https://rustup.rs and run this script again." >&2
+  exit 1
+fi
+
+echo "freeinference: building from source, this takes a while the first time."
+cargo install --locked --git https://github.com/humuhumu33/freeinference freeinference
+echo "freeinference: installed. Start it with: freeinference serve"

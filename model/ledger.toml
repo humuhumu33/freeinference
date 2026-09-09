@@ -1,0 +1,20 @@
+# Claims that are not conformance ids. A some-true claim must name an
+# authority; a build claim must not.
+
+[[claim]]
+id = "AUTH-BLAKE3"
+level = "some-true"
+statement = "BLAKE3 is a cryptographic hash whose output is stable across platforms for identical input bytes."
+authority = "https://github.com/BLAKE3-team/BLAKE3-specs"
+
+[[claim]]
+id = "AUTH-ED25519"
+level = "some-true"
+statement = "Ed25519 signatures verify deterministically under RFC 8032."
+authority = "https://www.rfc-editor.org/rfc/rfc8032"
+
+[[claim]]
+id = "AUTH-OPENAI-FINGERPRINT"
+level = "some-true"
+statement = "The OpenAI chat completion object defines an optional system_fingerprint string and usage.prompt_tokens_details.cached_tokens."
+authority = "https://github.com/openai/openai-openapi"
