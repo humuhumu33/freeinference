@@ -49,8 +49,132 @@ async function init() {
     const h = await fetch("/healthz").then(r => r.json());
     $("dot").className = "dot ok"; $("status").textContent = `ready · ${h.modules_ready} modules`;
   } catch { $("status").textContent = "offline"; }
-  const models = await fetch("/v1/models").then(r => r.json()).then(j => j.data || []).catch(() => []);
-  $("model").innerHTML = models.map(m => `<option value="${m.id}">${m.id}</option>`).join("") || `<option value="">no model imported</option>`;
+  const hasGpu = typeof navigator !== "undefined" && !!navigator.gpu;
+  const models = (await fetch("/v1/models").then(r => r.json()).then(j => j.data || []).catch(() => []))
+    .filter(m => hasGpu || !m.id.startsWith("webgpu:"));
+  // WebGPU models first: they are the engine. Anything else in the catalog is answered from receipts only.
+  models.sort((a, b) => (b.id.startsWith("webgpu:") ? 1 : 0) - (a.id.startsWith("webgpu:") ? 1 : 0));
+  const label = id => ({ "webgpu:BitNet": "BitNet 2B 4T · WebGPU in this browser", "webgpu:Qwen2.5-Coder": "Qwen2.5 Coder 7B · WebGPU in this browser" })[id] || id;
+  $("model").innerHTML = models.map(m => `<option value="${m.id}">${label(m.id)}</option>`).join("") || `<option value="">${hasGpu ? "no model" : "this browser has no WebGPU"}</option>`;
+  if (!hasGpu) $("hint").textContent = "No WebGPU in this browser: prompts already answered are served from receipts, new ones need a WebGPU device.";
+  // Choosing a WebGPU model starts loading it at once, so the first answer does not wait for the weights.
+  $("model").onchange = () => { if ($("model").value.startsWith("webgpu:")) gpuReady().catch(err => { $("hint").textContent = `Error: ${err.message}`; }); };
+  if ($("model").value.startsWith("webgpu:")) gpuReady().catch(err => { $("hint").textContent = `Error: ${err.message}`; });
+}
+
+// WebGPU path: Hologram Q's ternary engine, served by this daemon under /q and run in this browser.
+// Blocks stream from Hugging Face and each is re-derived before use; the answer is sealed under Q's
+// receipt (PROV-O, did:holo) and stored by the daemon as a q-receipt. Re-derivation runs on this GPU.
+// Speed follows Q's own fast brain (core/q-brain-fast.mjs): the weights stay resident on the GPU across
+// turns, and the running token ids of the last committed turn are kept so the next turn extends them by
+// one user block only. The engine then reuses the resident KV for the whole prior conversation and
+// prefills just the new tokens (warm), instead of re-prefilling the whole framed history (cold).
+let gpuEngine = null, gpuModel = null, gpuMods = null, gpuLoading = null;
+let gpuSession = null;   // { ids, sig } of the last committed turn, as generated, never re-tokenized
+const sigOf = list => (list || []).map(m => (m.role || "") + (m.content || "")).join("");
+// The exact tokens frameHistory would add after the previous reply for a llama3 template model (BitNet).
+const tailFor = (M, u) => M.llama3 ? `<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n${u || ""}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`
+  : (M.qwen && !M.qwen3) ? `<|im_end|>\n<|im_start|>user\n${u || ""}<|im_end|>\n<|im_start|>assistant\n` : null;
+const famOf = id => ({ "webgpu:BitNet": "BitNet", "webgpu:Qwen2.5-Coder": "Qwen2.5-Coder" })[id] || "BitNet";
+function gpuReady() {
+  const fam = famOf($("model").value);
+  if (gpuEngine && gpuModel && gpuModel.fam === fam) return Promise.resolve(gpuEngine);
+  if (gpuLoading && gpuModel && gpuModel.fam === fam) return gpuLoading;
+  if (gpuEngine) { try { gpuEngine.destroy(); } catch (e) {} gpuEngine = null; gpuSession = null; }
+  gpuLoading = (async () => {
+    const [L, E, F] = await Promise.all([import("/q/core/loader.js"), import("/q/core/engine.js"), import("/q/core/q-brain-fast.mjs")]);
+    gpuMods = { L, E, F };
+    gpuModel = L.MODELS.find(m => m.fam === fam);
+    $("hint").textContent = "loading tokenizer";
+    await L.ready();
+    const t0 = performance.now();
+    const loaded = await L.loadModel(gpuModel, {
+      onStatus: (t) => { $("hint").textContent = String(t || "").slice(0, 60); },
+      onProgress: (d, t, w) => { $("hint").textContent = t ? `${w || "loading"} ${Math.round(d / t * 100)}% of ${(t / 1e9).toFixed(2)} GB` : `${w || "loading"} ${d}`; },
+    });
+    if (!loaded || !loaded.gpu) throw new Error("model load failed");
+    gpuEngine = await E.createEngine(gpuModel, loaded);
+    const marks = window.__loadMarks || {};
+    $("hint").textContent = `resident on this GPU · ${marks.holoWarm ? "warm from this browser's store" : "verified block by block"} · ${((performance.now() - t0) / 1000).toFixed(1)} s`;
+    return gpuEngine;
+  })().catch(err => { gpuLoading = null; throw err; });
+  return gpuLoading;
+}
+function gpuIds(engine, messages) {
+  const { F } = gpuMods;
+  const last = messages[messages.length - 1];
+  if (gpuSession && messages.length >= 2 && last && last.role === "user") {
+    const tail = tailFor(gpuModel, last.content);
+    if (tail != null && sigOf(messages.slice(0, -1)) === gpuSession.sig) return { ids: gpuSession.ids.concat(engine.tokenize(tail)), warm: true };
+  }
+  let ids = engine.tokenize(F.frameHistory(gpuModel, messages));
+  if (gpuModel.bos && engine.bosId != null) ids = [engine.bosId, ...ids];
+  return { ids, warm: false };
+}
+// Chips under a stored answer: its receipt, that nothing ran, and a re-derive button that
+// fetches the stored Q receipt and replays it on this GPU.
+function storedMeta(el, hit) {
+  const meta = document.createElement("div"); meta.className = "meta";
+  meta.innerHTML = `<span class="badge mono" title="${hit.fingerprint || ""}">model ${short(String(hit.fingerprint || "").split(";")[0].replace("did:holo:sha256:", ""))}</span>` +
+    `<a class="badge mono ok" href="/api/v1/objects/${hit.receipt}" title="${hit.receipt}">receipt ${short(hit.receipt)}</a>` +
+    `<span class="badge ok">served from receipt, no execution</span>` +
+    `<button class="badge" type="button">re-derive on this GPU</button>`;
+  el.appendChild(meta);
+  meta.querySelector("button").onclick = async (ev) => {
+    ev.target.textContent = "re-deriving";
+    try {
+      const rec = await fetch(`/api/v1/objects/${hit.receipt}`).then(r => r.json());
+      const v = await (await gpuReady()).reDerive(rec);
+      ev.target.textContent = v.ok ? "re-derived: identical" : `not identical: ${v.reason || "output κ differs"}`;
+      ev.target.className = v.ok ? "badge ok" : "badge";
+    } catch (err) { ev.target.textContent = `re-derive failed: ${err.message}`; }
+  };
+}
+async function gpuTurn(messages, el, body) {
+  // Ask the store first. A repeated prompt is served from its receipt; the GPU is not touched.
+  const t0 = performance.now();
+  const hit = await fetch("/v1/webgpu/lookup", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json()).catch(() => ({ hit: false }));
+  if (hit.hit) {
+    el.textContent = hit.text; storedMeta(el, hit);
+    $("hint").textContent = `${Math.round(performance.now() - t0)} ms · served from receipt, no execution`;
+    return hit.text;
+  }
+  const engine = await gpuReady();
+  const { ids, warm } = gpuIds(engine, messages);
+  const started = performance.now();
+  const live = s => `${warm ? "warm" : "cold"} prefill · first token ${Math.round(s.ttft || 0)} ms · ${(s.tokps || 0).toFixed(1)} tok/s`;
+  $("hint").textContent = `${warm ? "warm" : "cold"} prefill · ${ids.length} tokens`;
+  const res = await engine.generate(ids, { maxNew: Number($("max_tokens").value), onToken: ({ text, stats }) => { el.textContent = text; if (stats) $("hint").textContent = live(stats); } });
+  const text = (res.text || "").trim(); el.textContent = text;
+  if (res.ids && text && !res.error) gpuSession = { ids: res.ids.slice(), sig: sigOf(messages.concat([{ role: "assistant", content: text }])) };
+  const promptText = (messages.filter(m => m.role === "user").slice(-1)[0] || {}).content || "";
+  const rec = await engine.buildReceipt({ promptText, ctxIds: [], turnIds: ids, outIds: res.outIds });
+  // Hand the sealed answer to the daemon: it checks the receipt re-derives, then stores the receipt,
+  // the answer bytes and a memo, so this prompt is answered from the store next time, here or elsewhere.
+  let stored = null;
+  try {
+    const r = await fetch("/v1/webgpu/seal", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...body, receipt: { id: rec.id, body: rec.body, text: rec.text, promptText: rec.promptText, ctxIds: rec.ctxIds, turnIds: rec.turnIds, outIds: rec.outIds, params: rec.params } }) });
+    const j = await r.json(); stored = r.ok ? j.receipt : null;
+    if (!r.ok) $("hint").textContent = `not stored: ${j.error?.message || r.status}`;
+  } catch (e) {}
+  const used = rec.body["prov:used"] || {};
+  const strip = k => String(k || "").replace("did:holo:sha256:", "");
+  const meta = document.createElement("div"); meta.className = "meta";
+  meta.innerHTML = `<span class="badge mono" title="${used["holo:model"] || ""}">model ${short(strip(used["holo:model"]))}</span>` +
+    `<span class="badge mono" title="${rec.id}">receipt ${short(strip(rec.id))}</span>` +
+    `<span class="badge">sealed on WebGPU</span>` +
+    `<button class="badge" type="button">re-derive on this GPU</button>` +
+    (stored ? `<a class="badge mono" href="/api/v1/objects/${stored}">stored ${short(stored)}</a>` : "");
+  el.appendChild(meta);
+  meta.querySelector("button").onclick = async (ev) => {
+    ev.target.textContent = "re-deriving";
+    const v = await engine.reDerive(rec);
+    ev.target.textContent = v.ok ? "re-derived: identical" : `not identical: ${v.reason || "output κ differs"}`;
+    ev.target.className = v.ok ? "badge ok" : "badge";
+  };
+  $("hint").textContent = `${Math.round(performance.now() - started)} ms · webgpu · ${live(res.stats || {})}`;
+  return text;
 }
 
 function add(role, text) {
@@ -70,6 +194,13 @@ $("composer").onsubmit = async e => {
   const body = { model: $("model").value, messages, temperature: Number($("temperature").value), max_tokens: Number($("max_tokens").value) };
   if ($("seed").value) body.seed = Number($("seed").value);
   const started = performance.now();
+  if ($("model").value.startsWith("webgpu:")) {
+    const el = add("assistant", "");
+    try { const content = await gpuTurn(messages, el, body); history.push({ role: "assistant", content }); }
+    catch (err) { el.textContent = `Error: ${err.message}`; }
+    finally { $("send").disabled = false; $("input").focus(); }
+    return;
+  }
   try {
     const res = await fetch("/v1/chat/completions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     const json = await res.json();
@@ -81,7 +212,8 @@ $("composer").onsubmit = async e => {
     const meta = document.createElement("div"); meta.className = "meta";
     meta.innerHTML = json.system_fingerprint
       ? `<span class="badge mono" title="${json.system_fingerprint}">fingerprint ${short(json.system_fingerprint.split(";")[0])}</span>` +
-        (receipt ? `<a class="badge mono ok" href="/api/v1/objects/${receipt}" title="${receipt}">receipt ${short(receipt)}</a>` : "")
+        (receipt ? `<a class="badge mono ok" href="/api/v1/objects/${receipt}" title="${receipt}">receipt ${short(receipt)}</a>` : "") +
+        (res.headers.get("x-hologram-reuse") ? `<span class="badge ok" title="${res.headers.get("x-hologram-reuse")}">served from receipt, no execution</span>` : "")
       : `<span class="badge">no fingerprint: model not in catalog</span>`;
     el.appendChild(meta);
     $("hint").textContent = `${Math.round(performance.now() - started)} ms · ${res.headers.get("x-hologram-stream") || ""}`;

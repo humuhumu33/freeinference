@@ -2,5 +2,5 @@
 
 #[tokio::main]
 async fn main() {
-    freeinference::cli::run(freeinference::modules::engine::refusing_factory).await;
+    freeinference::cli::run(freeinference::modules::webgpu::select_engine).await;
 }

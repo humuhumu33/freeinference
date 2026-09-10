@@ -47,6 +47,18 @@ level = "build"
 statement = "Every module registers and the merged router boots without a route collision."
 
 [[id]]
+id = "RC-05"
+suite = "receipts"
+level = "build"
+statement = "A repeated prompt for the same model and parameters is served from its stored receipt and answer bytes with no engine run, carrying the original receipt kappa and a reuse header."
+
+[[id]]
+id = "RC-06"
+suite = "receipts"
+level = "build"
+statement = "The memo, receipt and answer objects carried to a daemon that has no model serve the same answer there when the model is asked for by kappa, with no engine run, and the receipt's integrity verifies on that daemon."
+
+[[id]]
 id = "CO-01"
 suite = "console"
 level = "build"
@@ -69,3 +81,27 @@ id = "VF-02"
 suite = "verify"
 level = "build"
 statement = "Verifying a receipt whose engine sealed no replayable answer record reports not verified with integrity true and never claims a replay."
+
+[[id]]
+id = "WG-01"
+suite = "webgpu"
+level = "build"
+statement = "The daemon serves the pinned Hologram Q WebGPU engine snapshot under /q with its hash list, and the wasm with the wasm media type."
+
+[[id]]
+id = "WG-02"
+suite = "webgpu"
+level = "build"
+statement = "The Playground offers the WebGPU models only when the browser has WebGPU, seals each browser answer under Hologram Q's receipt, and hands it to the daemon through /v1/webgpu/seal."
+
+[[id]]
+id = "WG-03"
+suite = "webgpu"
+level = "build"
+statement = "An answer the browser engine sealed is stored as its Q receipt, its answer bytes and a memo, only when the receipt's did:holo re-derives from its body; the same prompt is then served from the receipt to the Playground and to any OpenAI client with no execution, and the receipt's integrity verifies on the daemon."
+
+[[id]]
+id = "WG-04"
+suite = "webgpu"
+level = "build"
+statement = "As shipped, the daemon's engine is the browser's: /v1/models lists the WebGPU models, and a prompt no receipt answers is refused with where compute runs, never executed or echoed on the daemon."

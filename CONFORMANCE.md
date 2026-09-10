@@ -14,10 +14,16 @@ Every registered id has exactly one Gherkin scenario and exactly one executable 
 | `RC-02` | `build` | `receipts` | The receipt named in the response header resolves to a stored object whose kappa matches its bytes and whose signature verifies. |
 | `RC-03` | `build` | `receipts` | A response for a model that does not resolve in the catalog carries no fingerprint and no receipt header. |
 | `RC-04` | `build` | `receipts` | Every module registers and the merged router boots without a route collision. |
+| `RC-05` | `build` | `receipts` | A repeated prompt for the same model and parameters is served from its stored receipt and answer bytes with no engine run, carrying the original receipt kappa and a reuse header. |
+| `RC-06` | `build` | `receipts` | The memo, receipt and answer objects carried to a daemon that has no model serve the same answer there when the model is asked for by kappa, with no engine run, and the receipt's integrity verifies on that daemon. |
 | `CO-01` | `build` | `console` | The daemon serves a dashboard at /dashboard that lists the sealed receipts on this machine. |
 | `CO-02` | `build` | `console` | The daemon serves a playground at /playground that sends prompts to the local OpenAI surface and shows each answer's fingerprint and receipt. |
 | `VF-01` | `build` | `verify` | A receipt fetched by its kappa from /v1/receipts returns the stored document whose signature and kappa verify. |
 | `VF-02` | `build` | `verify` | Verifying a receipt whose engine sealed no replayable answer record reports not verified with integrity true and never claims a replay. |
+| `WG-01` | `build` | `webgpu` | The daemon serves the pinned Hologram Q WebGPU engine snapshot under /q with its hash list, and the wasm with the wasm media type. |
+| `WG-02` | `build` | `webgpu` | The Playground offers the WebGPU models only when the browser has WebGPU, seals each browser answer under Hologram Q's receipt, and hands it to the daemon through /v1/webgpu/seal. |
+| `WG-03` | `build` | `webgpu` | An answer the browser engine sealed is stored as its Q receipt, its answer bytes and a memo, only when the receipt's did:holo re-derives from its body; the same prompt is then served from the receipt to the Playground and to any OpenAI client with no execution, and the receipt's integrity verifies on the daemon. |
+| `WG-04` | `build` | `webgpu` | As shipped, the daemon's engine is the browser's: /v1/models lists the WebGPU models, and a prompt no receipt answers is refused with where compute runs, never executed or echoed on the daemon. |
 
 ## Claims that are not conformance ids
 

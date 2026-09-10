@@ -241,3 +241,64 @@ mod tests {
         );
     }
 }
+
+/// Two objects are sealed beside every receipt so a repeated prompt is served
+/// from the store and a receipt can travel with its answer: the answer bytes,
+/// stored at their own κ, which is the receipt's output κ because the store
+/// addresses by the same BLAKE3; and a memo, the index entry below.
+pub const ANSWER_KIND: &str = "answer";
+pub const ANSWER_MEDIA_TYPE: &str = "text/plain; charset=utf-8";
+pub const MEMO_KIND: &str = "memo";
+pub const MEMO_MEDIA_TYPE: &str = "application/vnd.freeinference.memo+json";
+pub const MEMO_IRI: &str = "https://freeinference.ai/memo/v1";
+
+/// What a later request needs to find a sealed answer without running the
+/// engine. `model` lists every κ the model answered to at seal time: the
+/// engine's root κ and, when the request came by name, the catalog record κ
+/// that name resolved to. A request names a model by name or by κ; either
+/// matches here. Nothing in a memo is trusted on its own: the receipt it
+/// names must verify and the answer bytes must hash to `output_kappa`.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Memo {
+    pub iri: String,
+    pub model: Vec<String>,
+    pub engine_kappa: String,
+    pub prompt_kappa: String,
+    pub params_kappa: String,
+    pub output_kappa: String,
+    pub receipt: String,
+}
+
+/// RFC 8785 canonical JSON, as Hologram Q's `core/kappa.js` writes it: keys
+/// sorted, no whitespace, scalars as JSON.stringify prints them.
+pub fn jcs(value: &serde_json::Value) -> String {
+    match value {
+        serde_json::Value::Array(items) => {
+            format!("[{}]", items.iter().map(jcs).collect::<Vec<_>>().join(","))
+        }
+        serde_json::Value::Object(map) => {
+            let mut keys: Vec<&String> = map.keys().collect();
+            keys.sort();
+            let fields: Vec<String> = keys
+                .into_iter()
+                .map(|key| {
+                    format!(
+                        "{}:{}",
+                        serde_json::to_string(key).unwrap_or_default(),
+                        jcs(&map[key])
+                    )
+                })
+                .collect();
+            format!("{{{}}}", fields.join(","))
+        }
+        scalar => serde_json::to_string(scalar).unwrap_or_default(),
+    }
+}
+
+/// The `did:holo:sha256:` address of a Q receipt body: SHA-256 over its JCS
+/// bytes. A receipt whose id does not equal this has been altered.
+pub fn did_holo(body: &serde_json::Value) -> String {
+    use sha2::Digest;
+    let digest = sha2::Sha256::digest(jcs(body).as_bytes());
+    format!("did:holo:sha256:{}", encode_hex(&digest))
+}

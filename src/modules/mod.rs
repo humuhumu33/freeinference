@@ -2,6 +2,6 @@
 //! point and the rule that keeps modules independent.
 
 pub mod console;
-pub mod engine;
 pub mod openai;
 pub mod receipts;
+pub mod webgpu;

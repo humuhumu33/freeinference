@@ -41,7 +41,7 @@ Every phase below exists because one of those nine lines needs it.
 |---|---|---|---|---|---|
 | 0 Homepage | 1 | hologram-website stack, React, Vite, Tailwind, Pages | copy and one page | `site`: no hyphen, under 120 words, deploys | 2 |
 | 1 Endpoint with receipts | 4, 5 | openai-compat module, `async-openai` types, `SessionAttestation` shape, ed25519-dalek | receipt realization, header insert, fingerprint | `receipts` | 4 |
-| 2 Verify | 7 | Tier 1 generated validator, deterministic engine replay | two routes, one CLI subcommand | `verify` | 3 |
+| 2 Verify | 7 | Tier 1 generated validator, re-derivation in the browser engine | two routes, one CLI subcommand | `verify` | 3 |
 | 3 Prefix cache | 6 | `derive_label`, redb store range scans | trie, HIT MISS PARTIAL header, truthful `cached_tokens` | `prefix` | 5 |
 | 4 Verified pull | 3, 9 | `update.rs` verify pattern, `holo_fetch` transport hardening, huggingface_hub headers | streaming dual-hash store write, Range, `run` | `pull` | 8 |
 | 5 Catalog and second protocol | 1, 2 | `/v1/models` in HF provider format, Ollama's `/v1/messages` precedent | anthropic-compat module, listings | `catalog` | 4 |

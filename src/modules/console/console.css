@@ -67,6 +67,9 @@ pre { margin: 0; padding: 16px 18px; font-family: var(--font-mono); font-size: 1
 .composer { border: 1px solid var(--border); background: var(--card); border-radius: var(--radius); padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
 textarea, select, input[type=number] { width: 100%; background: transparent; color: var(--foreground); border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; font: inherit; }
 textarea:focus, select:focus, input:focus { outline: none; border-color: var(--ring); }
+/* The dropdown popup inherits the select's background; transparent paints it white on Windows. */
+select { background: var(--card); color-scheme: dark; }
+select option { background: var(--card); color: var(--foreground); }
 .composer textarea { border: 0; padding: 4px; resize: none; min-height: 56px; }
 .composer .row { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
 .btn { display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 8px; border: 0; background: var(--brand); color: var(--brand-foreground); font: inherit; font-weight: 500; cursor: pointer; }

@@ -13,24 +13,27 @@ Phase 0 and Phase 1 of the plan in `PLAN.md`.
 - Phase 0, homepage: shipped from `site/`, gated by `scripts/check_site.py`.
 - Phase 1, endpoint with receipts: `freeinference serve` exposes `/v1/chat/completions` and `/v1/models`. When the requested model resolves in the local catalog, `system_fingerprint` is the model κ joined with the engine κ, and the `x-hologram-receipt` header names a stored, signed receipt. When it does not resolve, neither is present.
 
-- Engine: with `inference.engine = "holo"` the daemon runs hologram-ai in process. Every weight is κ addressed: the model root κ is a manifest over config, tokenizer, every tensor and every derived artifact, verified fail closed at load. Decode is deterministic, so `system_fingerprint` names the exact model and engine build, and each answer seals a replayable record.
-- Phase 2, verify: `GET /v1/receipts/{κ}` returns a receipt; `POST /v1/receipts/{κ}/verify` and `freeinference verify <κ>` replay the answer on the engine and report confirmed, or refuted at the first divergent byte. Engines without replay refuse, and the refusal is reported as such.
+- Engine: Hologram Q's WebGPU ternary engine, run in the browser, served by the daemon under `/q` from a pinned MIT snapshot of `hologram-apps/apps/q`. Every weight is κ addressed: each block is re-derived before use and the manifest must match its pinned root. The daemon executes nothing itself.
+- Phase 2, verify: `GET /v1/receipts/{κ}` returns a receipt; `POST /v1/receipts/{κ}/verify` and `freeinference verify <κ>` check a receipt's integrity on any daemon; re-derivation of the answer runs in the Playground on a WebGPU device, byte for byte against the receipt.
 
 Later phases: prefix cache, verified pull, catalog and Anthropic protocol, desktop, sharing.
 
 ## Build and run
 
 ```bash
-cargo build --locked                          # root package: endpoint, receipts, console, verify
-cargo build --locked --manifest-path engine/Cargo.toml   # freeinference-holo: the same binary with the deterministic engine compiled in
+cargo build --locked
 cargo run --locked -- serve
 ```
 
-The root package builds for anyone. The engine package pins hologram-ai, whose substrate revision is private today, so it needs read access to build; see VERIFICATION.md.
+One package, builds for anyone, no private pins.
 
 Then point any OpenAI client at `http://127.0.0.1:11435/v1`.
 
 The daemon also serves a local console: `http://127.0.0.1:11435/dashboard` lists the sealed receipts on this machine, `http://127.0.0.1:11435/playground` sends prompts and shows each answer's fingerprint and receipt. Static pages, no build step, no key.
+
+Every answer sealed in the browser is stored by the daemon as three content addressed objects: the Q receipt, the answer bytes at their own κ, and a memo that indexes them by model, prompt κ and parameters κ. A repeated prompt, from the Playground or from any OpenAI client naming the same model, is served from the store with the receipt and an `x-hologram-reuse` header, no execution. Copy the three objects to another daemon through its objects API and ask there: the same answer and receipt come back with nothing run. A prompt no receipt answers is refused by the daemon with where compute runs; it is not echoed or invented.
+
+The Playground offers the WebGPU models when the browser has WebGPU: HOLOGRAMTECH/q-bitnet-2b by default, Qwen2.5-Coder-7B as well. Weights stream from Hugging Face once, each block re-derived before use, then stay in the browser's own store. Turns extend the resident KV as Q's fast brain does, and every answer can be re-derived on the same GPU from the Playground.
 
 ## How it is built
 
@@ -38,7 +41,7 @@ The daemon also serves a local console: `http://127.0.0.1:11435/dashboard` lists
 - κ addressing comes from `uor-hologram`.
 - OpenAI request validation uses `async-openai` types.
 - Receipts are signed with Ed25519.
-- The deterministic engine is `hologram-ai` at a pinned revision, reached through hologram-live's engine factory seam. The engine module is ported from hologram-live-ip's `unification/phase-1` unchanged apart from crate paths.
+- The engine is Hologram Q's, vendored as a hash listed snapshot under `src/modules/webgpu/q`; the daemon's own engine seam refuses to execute.
 
 One capability equals one module, one config section, one conformance suite, one feature file, one directory. Removing a capability means deleting its directory and one registration line.
 

@@ -26,12 +26,18 @@ pub fn extra_modules() -> Vec<Arc<dyn LiveModule>> {
         Arc::new(modules::openai::OpenAiModule),
         Arc::new(modules::receipts::ReceiptsModule),
         Arc::new(modules::console::ConsoleModule),
+        Arc::new(modules::webgpu::WebGpuModule),
     ]
 }
 
 /// Adjusts a hologram-live configuration so this crate's modules are enabled
 /// and the built-ins they replace are not.
 pub fn configure(config: &mut AppConfig) {
+    // The engine is the browser's. hologram-live's default, echo, would answer
+    // anything with the prompt itself; a fresh configuration must not run it.
+    if config.inference.engine == "echo" {
+        config.inference.engine = modules::webgpu::ENGINE_NAME.to_owned();
+    }
     config
         .modules
         .enabled

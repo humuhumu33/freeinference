@@ -78,11 +78,16 @@ async function load() {
   if (models[0]) document.getElementById("snippet-model").textContent = `"${models[0].id}"`;
 
   const objects = await fetch("/api/v1/objects").then(r => r.json()).catch(() => []);
-  const receipts = objects.filter(o => o.kind === "receipt").sort((a, b) => b.created_at_millis - a.created_at_millis);
+  const receipts = objects.filter(o => o.kind === "receipt" || o.kind === "q-receipt").sort((a, b) => b.created_at_millis - a.created_at_millis);
   document.getElementById("receipts").textContent = receipts.length;
   if (!receipts.length) return;
   const rows = await Promise.all(receipts.slice(0, 25).map(async o => {
     const r = await fetch(`/api/v1/objects/${o.id}`).then(r => r.json()).catch(() => ({}));
+    if (o.kind === "q-receipt") {
+      const used = (r.body && r.body["prov:used"]) || {}, gen = (r.body && r.body["prov:generated"]) || {};
+      const strip = k => String(k || "").replace("did:holo:sha256:", "");
+      return `<tr><td>${when(o.created_at_millis)}</td><td class="mono" title="${used["holo:model"] || ""}">${short(strip(used["holo:model"]))}</td><td class="mono"><a href="/api/v1/objects/${o.id}" title="${r.id || o.id}">${short(strip(r.id))}</a></td><td class="mono" title="${gen["holo:outputTokens"] || ""}">${short(strip(gen["holo:outputTokens"]))}</td><td><span class="badge ok">Sealed · WebGPU</span></td></tr>`;
+    }
     return `<tr><td>${when(o.created_at_millis)}</td><td class="mono" title="${r.model_kappa || ""}">${short(r.model_kappa)}</td><td class="mono"><a href="/api/v1/objects/${o.id}" title="${o.id}">${short(o.id)}</a></td><td class="mono" title="${r.output_kappa || ""}">${short(r.output_kappa)}</td><td><span class="badge ok">Sealed</span></td></tr>`;
   }));
   document.getElementById("rows").innerHTML = rows.join("");

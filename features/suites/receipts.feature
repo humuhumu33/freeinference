@@ -23,3 +23,15 @@ Feature: receipts
     Given the built in modules and every freeinference module
     When the application state is built
     Then startup succeeds and the merged router serves the health route
+
+  @RC-05 @build
+  Scenario: A repeated prompt for the same model and parameters is served from its stored receipt and answer bytes with no engine run, carrying the original receipt kappa and a reuse header.
+    Given a daemon that has answered a prompt once and sealed a receipt
+    When the same prompt is sent again for the same model and parameters
+    Then the response carries the same receipt kappa, an x-hologram-reuse header, the same content, and no new receipt exists
+
+  @RC-06 @build
+  Scenario: The memo, receipt and answer objects carried to a daemon that has no model serve the same answer there when the model is asked for by kappa, with no engine run, and the receipt's integrity verifies on that daemon.
+    Given a second daemon with an empty catalog
+    When the memo, receipt and answer objects are posted to its registry and the prompt is sent naming the model by kappa
+    Then the response carries the original receipt kappa, a reuse header, the same content, no receipt was sealed there, and the receipt's integrity verifies on that daemon
